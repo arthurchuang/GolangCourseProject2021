@@ -18,6 +18,7 @@ func main() {
 		log.Fatal("Failed to read from HTML's body: ", errRead)
 	}
 	fmt.Println(string(body))
+	fmt.Println("harry hello")
 
 	response.Body.Close()
 }
