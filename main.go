@@ -2,22 +2,30 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
 )
 
-func main() {
-	baseURL := "https://www.carrefour.com.tw/"
-	response, err := http.Get(baseURL)
-	if err != nil {
-		log.Fatal("Unable to parse from the baseURL: ", err)
-	}
-	body, errRead := ioutil.ReadAll(response.Body)
-	if errRead != nil {
-		log.Fatal("Failed to read from HTML's body: ", errRead)
-	}
-	fmt.Println(string(body))
+const storeUrl = "https://online.carrefour.com.tw/tw/"
 
-	response.Body.Close()
+func main() {
+	res, err := http.Get(storeUrl)
+	if err != nil {
+		log.Fatalf("Error getting store website: %e", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		log.Fatalf("Status code error: %d %s", res.StatusCode, res.Status)
+	}
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// TODO : locate actual things of interest
+	doc.Find(".menu-list").Each(func(i int, selection *goquery.Selection) {
+		fmt.Printf("index %d, content %v", i, selection)
+	})
 }
