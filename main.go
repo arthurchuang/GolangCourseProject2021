@@ -67,6 +67,12 @@ func processPage(url string) error {
 			fmt.Printf("product link: %s%s\n", baseUrl, link)
 		}
 
+		img := selection.Find(".gtm-product-alink").Find("img")
+		imgLink, found := img.Attr("src")
+		if found {
+			fmt.Printf("product image: %s\n", imgLink)
+		}
+
 		fmt.Printf("\n\n")
 	})
 	return nil
