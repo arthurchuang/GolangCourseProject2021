@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"log"
@@ -31,9 +32,42 @@ func main() {
 		anchor := selection.Find("a")
 		addr, found := anchor.Attr("href")
 		if found {
-			pageLink := fmt.Sprintf("%s%s", baseUrl, addr)
-			fmt.Printf("page link: %s\n", pageLink)
-			// TODO : process page
+			pageUrl := fmt.Sprintf("%s%s", baseUrl, addr)
+			if err := processPage(pageUrl); err != nil {
+				fmt.Printf("Error while processing page (%s) : %e", pageUrl, err)
+			}
 		}
 	})
+}
+
+func processPage(url string) error {
+	fmt.Printf("page url: %s\n", url)
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("Status code error: %d %s", res.StatusCode, res.Status))
+	}
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		return err
+	}
+
+	doc.Find(".hot-recommend-item.line").Each(func(i int, selection *goquery.Selection) {
+		nameAnchor := selection.Find(".commodity-desc").Find("a")
+		name, found := nameAnchor.Attr("title")
+		if found {
+			fmt.Printf("product name: %s\n", name)
+		}
+		link, found := nameAnchor.Attr("href")
+		if found {
+			fmt.Printf("product link: %s%s\n", baseUrl, link)
+		}
+
+		fmt.Printf("\n\n")
+	})
+	return nil
 }
