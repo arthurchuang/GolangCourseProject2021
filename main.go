@@ -7,7 +7,10 @@ import (
 	"net/http"
 )
 
-const storeUrl = "https://online.carrefour.com.tw/tw/"
+const (
+	storeUrl = "https://online.carrefour.com.tw/tw/"
+	baseUrl  = "https://online.carrefour.com.tw"
+)
 
 func main() {
 	res, err := http.Get(storeUrl)
@@ -24,8 +27,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// TODO : locate actual things of interest
-	doc.Find(".menu-list").Each(func(i int, selection *goquery.Selection) {
-		fmt.Printf("index %d, content %v", i, selection)
+	doc.Find(".top1.left-item").Each(func(i int, selection *goquery.Selection) {
+		anchor := selection.Find("a")
+		addr, found := anchor.Attr("href")
+		if found {
+			pageLink := fmt.Sprintf("%s%s", baseUrl, addr)
+			fmt.Printf("page link: %s\n", pageLink)
+			// TODO : process page
+		}
 	})
 }
