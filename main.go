@@ -73,6 +73,9 @@ func processPage(url string) error {
 			fmt.Printf("product image: %s\n", imgLink)
 		}
 
+		price := selection.Find(".current-price").Find("em").Text()
+		fmt.Printf("product price: %s", price)
+
 		fmt.Printf("\n\n")
 	})
 	return nil
