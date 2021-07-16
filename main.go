@@ -59,24 +59,34 @@ func processPage(url string) error {
 	doc.Find(".hot-recommend-item.line").Each(func(i int, selection *goquery.Selection) {
 		nameAnchor := selection.Find(".commodity-desc").Find("a")
 		name, found := nameAnchor.Attr("title")
-		if found {
-			fmt.Printf("product name: %s\n", name)
+		if !found {
+			name = "not found"
 		}
+
 		link, found := nameAnchor.Attr("href")
-		if found {
-			fmt.Printf("product link: %s%s\n", baseUrl, link)
+		if !found {
+			link = "not found"
 		}
 
 		img := selection.Find(".gtm-product-alink").Find("img")
 		imgLink, found := img.Attr("src")
-		if found {
-			fmt.Printf("product image: %s\n", imgLink)
+		if !found {
+			imgLink = "not found"
 		}
 
 		price := selection.Find(".current-price").Find("em").Text()
-		fmt.Printf("product price: %s", price)
 
-		fmt.Printf("\n\n")
+		saveEntry(name, link, imgLink, price)
 	})
 	return nil
+}
+
+func saveEntry(name string, link string, imgLink string, price string) {
+	fmt.Printf("product name: %s\n", name)
+	fmt.Printf("product link: %s%s\n", baseUrl, link)
+	fmt.Printf("product image: %s\n", imgLink)
+	fmt.Printf("product price: %s", price)
+	fmt.Printf("\n\n")
+
+	// TODO : save to DB
 }
