@@ -58,7 +58,7 @@ func main(){
 	for i:= range price{
 		fmt.Println("Product: ",product[i])
 		fmt.Println("Price: ",price[i])
-		fmt.Println("Source Src: ",url_img[i],"\n")
+		fmt.Println("IMG Url Source: ",url_img[i],"\n")
 	}
 
 }
