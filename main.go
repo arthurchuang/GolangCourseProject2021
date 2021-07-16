@@ -1,85 +1,93 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
-	"strings"
 
-	"golang.org/x/net/html"
+	"github.com/PuerkitoBio/goquery"
 )
 
-// Helper function to pull the href attribute from a Token
-func getHref(t html.Token) (ok bool, href string) {
-	// Iterate over token attributes until we find an "href"
-	for _, a := range t.Attr {
-		if a.Key == "href" {
-			href = a.Val
-			ok = true
-		}
-	}
-	return
-}
+const (
+	storeUrl = "https://online.carrefour.com.tw/tw/"
+	baseUrl  = "https://online.carrefour.com.tw"
+)
 
 func main() {
-	baseURL := "https://online.carrefour.com.tw/zh/homepage"
-	response, err := http.Get(baseURL)
+	res, err := http.Get(storeUrl)
 	if err != nil {
-		log.Fatal("Unable to parse from the baseURL: ", err)
+		log.Fatalf("Error getting store website: %e", err)
 	}
-	body, errRead := ioutil.ReadAll(response.Body)
-	if errRead != nil {
-		log.Fatal("Failed to read from HTML's body: ", errRead)
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		log.Fatalf("Status code error: %d %s", res.StatusCode, res.Status)
 	}
-	defer response.Body.Close()
 
-	// Install the html package, using `go get golang.org/x/net/html`
-	reader := strings.NewReader(string(body))
-	tokenizer := html.NewTokenizer(reader)
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// Scan user's input for category name
-	fmt.Println("Enter the category name (i.e.生鮮食品/冷凍食品/飲料零食): ")
-	var first string
-	fmt.Scanln(&first)
-
-	for {
-
-		// Iterate through each token and check the token type to find anchor tags (link).
-		tt := tokenizer.Next()
-		t := tokenizer.Token()
-
-		err := tokenizer.Err()
-		if err == io.EOF {
-			break
-		}
-
-		switch tt {
-		case html.ErrorToken:
-			log.Fatal(err)
-		case html.StartTagToken:
-			// Check if the token is an <a> tag.
-			isAnchor := t.Data == "a"
-			if !isAnchor {
-				continue
-			}
-			// Extract the href value, if there is one
-			ok, encodedValue := getHref(t)
-			if !ok {
-				continue
-			}
-			// Decode the URL strings found
-			decodedValue, err := url.QueryUnescape(encodedValue)
-			if err != nil {
-				log.Fatal(err)
-				return
-			}
-			// Print out all relevant URLs for the category specified by user input
-			if strings.Contains(decodedValue, first) {
-				fmt.Printf("URL: %q\n", decodedValue)
+	doc.Find(".top1.left-item").Each(func(i int, selection *goquery.Selection) {
+		anchor := selection.Find("a")
+		addr, found := anchor.Attr("href")
+		if found {
+			pageUrl := fmt.Sprintf("%s%s", baseUrl, addr)
+			if err := processPage(pageUrl); err != nil {
+				fmt.Printf("Error while processing page (%s) : %e", pageUrl, err)
 			}
 		}
+	})
+}
+
+func processPage(url string) error {
+	fmt.Printf("page url: %s\n", url)
+	res, err := http.Get(url)
+	if err != nil {
+		return err
 	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("Status code error: %d %s", res.StatusCode, res.Status))
+	}
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		return err
+	}
+
+	doc.Find(".hot-recommend-item.line").Each(func(i int, selection *goquery.Selection) {
+		nameAnchor := selection.Find(".commodity-desc").Find("a")
+		name, found := nameAnchor.Attr("title")
+		if !found {
+			name = "not found"
+		}
+
+		link, found := nameAnchor.Attr("href")
+		if !found {
+			link = "not found"
+		}
+
+		img := selection.Find(".gtm-product-alink").Find("img")
+		imgLink, found := img.Attr("src")
+		if !found {
+			imgLink = "not found"
+		}
+
+		price := selection.Find(".current-price").Find("em").Text()
+
+		saveEntry(name, link, imgLink, price)
+	})
+	return nil
+}
+
+func saveEntry(name string, link string, imgLink string, price string) {
+	fmt.Printf("product name: %s\n", name)
+	fmt.Printf("product link: %s%s\n", baseUrl, link)
+	fmt.Printf("product image: %s\n", imgLink)
+	fmt.Printf("product price: %s", price)
+	fmt.Printf("\n\n")
+
+	// TODO : save to DB
 }
