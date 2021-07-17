@@ -15,18 +15,9 @@ const (
 )
 
 func main() {
-	res, err := http.Get(storeUrl)
+	doc, err := getUrlDocument(storeUrl)
 	if err != nil {
-		log.Fatalf("Error getting store website: %e", err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		log.Fatalf("Status code error: %d %s", res.StatusCode, res.Status)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to read from store url (%s): %e", storeUrl, err)
 	}
 
 	doc.Find(".top1.left-item").Each(func(i int, selection *goquery.Selection) {
@@ -41,18 +32,27 @@ func main() {
 	})
 }
 
-func processPage(url string) error {
-	fmt.Printf("page url: %s\n", url)
+func getUrlDocument(url string) (*goquery.Document, error) {
 	res, err := http.Get(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return errors.New(fmt.Sprintf("Status code error: %d %s", res.StatusCode, res.Status))
+		return nil, errors.New(fmt.Sprintf("Status code error: %d %s", res.StatusCode, res.Status))
 	}
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return doc, nil
+}
+
+func processPage(url string) error {
+	fmt.Printf("page url: %s\n", url)
+	doc, err := getUrlDocument(url)
 	if err != nil {
 		return err
 	}
