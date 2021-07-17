@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
+	"GoCrawl/crawl"
 	"fmt"
-	"log"
-	"net/http"
-
 	"github.com/PuerkitoBio/goquery"
+	"log"
 )
 
 const (
@@ -15,7 +13,7 @@ const (
 )
 
 func main() {
-	doc, err := getUrlDocument(storeUrl)
+	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
 		log.Fatalf("Failed to read from store url (%s): %e", storeUrl, err)
 	}
@@ -32,27 +30,9 @@ func main() {
 	})
 }
 
-func getUrlDocument(url string) (*goquery.Document, error) {
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Status code error: %d %s", res.StatusCode, res.Status))
-	}
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return doc, nil
-}
-
 func processPage(url string) error {
 	fmt.Printf("page url: %s\n", url)
-	doc, err := getUrlDocument(url)
+	doc, err := crawl.GetUrlDocument(url)
 	if err != nil {
 		return err
 	}
@@ -86,8 +66,7 @@ func saveEntry(name string, link string, imgLink string, price string) {
 	fmt.Printf("product name: %s\n", name)
 	fmt.Printf("product link: %s%s\n", baseUrl, link)
 	fmt.Printf("product image: %s\n", imgLink)
-	fmt.Printf("product price: %s", price)
-	fmt.Printf("\n\n")
+	fmt.Printf("product price: %s\n\n", price)
 
 	// TODO : save to DB
 }
