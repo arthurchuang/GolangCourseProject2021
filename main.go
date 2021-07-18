@@ -2,9 +2,11 @@ package main
 
 import (
 	"GoCrawl/crawl"
+	"flag"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"log"
+	"time"
 )
 
 const (
@@ -13,10 +15,16 @@ const (
 )
 
 func main() {
+	numWorkers := flag.Int("numWorkers", 3, "Use this flag to set the number of workers (default to 3 if not specified).")
+	flag.Parse()
+	fmt.Printf("Number of workers: %d\n", *numWorkers)
+
 	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
 		log.Fatalf("Failed to read from store url (%s): %e", storeUrl, err)
 	}
+
+	start := time.Now()
 
 	doc.Find(".top1.left-item").Each(func(i int, selection *goquery.Selection) {
 		anchor := selection.Find("a")
@@ -28,6 +36,9 @@ func main() {
 			}
 		}
 	})
+
+	elapsed := time.Since(start)
+	fmt.Printf("\n\nTook %s to process all categories with %d workers.", elapsed, *numWorkers)
 }
 
 func processPage(url string) error {
