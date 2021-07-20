@@ -76,12 +76,6 @@ func processPage(url string) error {
 	if res.StatusCode != http.StatusOK {
 		return errors.New(fmt.Sprintf("Status code error: %d %s", res.StatusCode, res.Status))
 	}
-<<<<<<< HEAD
-	fmt.Println(string(body))
-	fmt.Println("harry hello")
-=======
->>>>>>> worker_main
-
 	doc, err := goquery.NewDocumentFromReader(res.Body)
 	if err != nil {
 		return err
