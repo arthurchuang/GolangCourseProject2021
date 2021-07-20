@@ -1,24 +1,123 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
+	"sync"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
+const (
+	storeUrl = "https://online.carrefour.com.tw/tw/"
+	baseUrl  = "https://online.carrefour.com.tw"
+)
+
+func timeTrack(start time.Time, name string){
+	elapsed := time.Since(start)
+	log.Printf("%s took %s",name,elapsed)
+}
+
 func main() {
-	baseURL := "https://www.carrefour.com.tw/"
-	response, err := http.Get(baseURL)
+	defer timeTrack(time.Now(),"Total Time")
+	res, err := http.Get(storeUrl)
 	if err != nil {
-		log.Fatal("Unable to parse from the baseURL: ", err)
+		log.Fatalf("Error getting store website: %e", err)
 	}
-	body, errRead := ioutil.ReadAll(response.Body)
-	if errRead != nil {
-		log.Fatal("Failed to read from HTML's body: ", errRead)
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		log.Fatalf("Status code error: %d %s", res.StatusCode, res.Status)
 	}
+	worker_number := 10
+	var wg sync.WaitGroup
+	job_list := make(chan string,1)
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go func(){
+		doc.Find(".top1.left-item").Each(func(i int, selection *goquery.Selection) {
+		anchor := selection.Find("a")
+		addr, found := anchor.Attr("href")
+		if found {
+			pageUrl := fmt.Sprintf("%s%s", baseUrl, addr)
+			job_list<- pageUrl
+ 			}
+		})
+		defer close(job_list)
+	}()
+	defer wg.Wait()
+	wg.Add(1)
+	for w:=1; w<=worker_number;w++{
+		go Worker(w,job_list,&wg)
+	}
+}
+
+func Worker(id int,jobs <-chan string, wg *sync.WaitGroup){
+	defer wg.Done()
+	for job:= range jobs{
+		fmt.Println("worker number:",id)
+		if err := processPage(job); err != nil {
+		fmt.Printf("Error while processing page (%s) : %e", job, err)
+			}
+	}
+}
+
+func processPage(url string) error {
+	fmt.Printf("page url: %s\n", url)
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return errors.New(fmt.Sprintf("Status code error: %d %s", res.StatusCode, res.Status))
+	}
+<<<<<<< HEAD
 	fmt.Println(string(body))
 	fmt.Println("harry hello")
+=======
+>>>>>>> worker_main
 
-	response.Body.Close()
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		return err
+	}
+
+	doc.Find(".hot-recommend-item.line").Each(func(i int, selection *goquery.Selection) {
+		nameAnchor := selection.Find(".commodity-desc").Find("a")
+		name, found := nameAnchor.Attr("title")
+		if !found {
+			name = "not found"
+		}
+
+		link, found := nameAnchor.Attr("href")
+		if !found {
+			link = "not found"
+		}
+
+		img := selection.Find(".gtm-product-alink").Find("img")
+		imgLink, found := img.Attr("src")
+		if !found {
+			imgLink = "not found"
+		}
+
+		price := selection.Find(".current-price").Find("em").Text()
+
+		saveEntry(name, link, imgLink, price)
+	})
+	return nil
+}
+
+func saveEntry(name string, link string, imgLink string, price string) {
+	fmt.Printf("product name: %s\n", name)
+	fmt.Printf("product link: %s%s\n", baseUrl, link)
+	fmt.Printf("product image: %s\n", imgLink)
+	fmt.Printf("product price: %s", price)
+	fmt.Printf("\n\n")
+
+	// TODO : save to DB
 }
