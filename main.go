@@ -16,7 +16,10 @@ const (
 	baseUrl  = "https://online.carrefour.com.tw"
 )
 
+var productID = 0
+
 type productEntry struct {
+	productID                            int
 	category, name, link, imgLink, price string
 }
 
@@ -66,20 +69,20 @@ func main() {
 	}
 	close(jobs)
 
-	for a := 1; a <= numJobs; a++ {
+	for categoryLoop := 1; categoryLoop <= numJobs; categoryLoop++ {
 		items := <-results
 		for _, v := range items {
-			saveEntry(v.category, v.name, v.link, v.imgLink, v.price)
+			saveEntry(v.productID, v.category, v.name, v.link, v.imgLink, v.price)
 		}
 	}
 
 	t2 := time.Now()
 
-	fmt.Println(t1)
-	fmt.Println(t2)
+	fmt.Println("Start: ", t1)
+	fmt.Println("Done: ", t2)
 
 	diff := t2.Sub(t1)
-	fmt.Println(diff)
+	fmt.Println("Elapsed time: ", diff)
 }
 
 func worker(id int, jobs <-chan string, results chan<- []productEntry) {
@@ -132,12 +135,14 @@ func processPage(url string) ([]productEntry, error) {
 
 		price := selection.Find(".current-price").Find("em").Text()
 
-		productList = append(productList, productEntry{url, name, link, imgLink, price})
+		productID += 1
+		productList = append(productList, productEntry{productID, url, name, link, imgLink, price})
 	})
 	return productList, nil
 }
 
-func saveEntry(category string, name string, link string, imgLink string, price string) {
+func saveEntry(productID int, category string, name string, link string, imgLink string, price string) {
+	fmt.Printf("product ID: %d\n", productID)
 	fmt.Printf("category url: %s\n", category)
 	fmt.Printf("product name: %s\n", name)
 	fmt.Printf("product link: %s%s\n", baseUrl, link)
