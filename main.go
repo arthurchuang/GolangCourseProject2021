@@ -1,6 +1,7 @@
 package main
 
 import (
+	"GoCrawl/concurrent"
 	"GoCrawl/crawl"
 	"context"
 	"flag"
@@ -19,45 +20,6 @@ const (
 	baseUrl  = "https://online.carrefour.com.tw"
 )
 
-type JobPool struct {
-	inputChan  chan string
-	workerChan chan string
-}
-
-func (p JobPool) worker(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		select {
-		case url := <-p.workerChan:
-			if err := processPage(url); err != nil {
-				fmt.Printf("Error while processing page (%s) : %e", url, err)
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func (p JobPool) start(ctx context.Context) {
-	for {
-		select {
-		case url := <-p.inputChan:
-			if ctx.Err() != nil {
-				close(p.workerChan)
-				return
-			}
-			p.workerChan <- url
-		case <-ctx.Done():
-			close(p.workerChan)
-			return
-		}
-	}
-}
-
-func (p JobPool) enqueue(url string) {
-	p.inputChan <- url
-}
-
 func main() {
 	numWorkers := flag.Int("numWorkers", 3, "Use this flag to set the number of workers (default to 3 if not specified).")
 	flag.Parse()
@@ -73,10 +35,8 @@ func main() {
 	finished := make(chan bool)
 	wg := &sync.WaitGroup{}
 	wg.Add(*numWorkers)
-	jobPool := JobPool{
-		inputChan:  make(chan string, 10),
-		workerChan: make(chan string, *numWorkers),
-	}
+
+	jobPool := concurrent.NewJobPool(*numWorkers)
 
 	ctx := gracefulShutdown(context.Background(), func() {
 		fmt.Printf("Shutting down gracefully\n")
@@ -85,10 +45,10 @@ func main() {
 	})
 
 	for i := 0; i < *numWorkers; i++ {
-		go jobPool.worker(ctx, wg)
+		jobPool.AddWorker(ctx, wg, processPage)
 	}
 
-	go jobPool.start(ctx)
+	jobPool.Start(ctx)
 
 	go func() {
 		doc.Find(".top1.left-item").Each(func(i int, selection *goquery.Selection) {
@@ -96,10 +56,7 @@ func main() {
 			addr, found := anchor.Attr("href")
 			if found {
 				pageUrl := fmt.Sprintf("%s%s", baseUrl, addr)
-				jobPool.enqueue(pageUrl)
-				//if err := processPage(pageUrl); err != nil {
-				//	fmt.Printf("Error while processing page (%s) : %e", pageUrl, err)
-				//}
+				jobPool.Enqueue(pageUrl)
 			}
 		})
 		close(finished)
