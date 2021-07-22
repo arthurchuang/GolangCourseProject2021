@@ -21,6 +21,10 @@ const (
 	baseUrl  = "https://online.carrefour.com.tw"
 )
 
+type productEntry struct {
+	name, link, imgLink, price string
+}
+
 func main() {
 	start := time.Now()
 	numWorkers := flag.Int("numWorkers", 3, "Use this flag to set the number of workers (default to 3 if not specified).")
@@ -112,16 +116,22 @@ func processPage(url string) error {
 
 		price := selection.Find(".current-price").Find("em").Text()
 
-		saveEntry(name, link, imgLink, price)
+		product := &productEntry{
+			name:    name,
+			link:    link,
+			imgLink: imgLink,
+			price:   price,
+		}
+		saveEntry(product)
 	})
 	return nil
 }
 
-func saveEntry(name string, link string, imgLink string, price string) {
-	fmt.Printf("product name: %s\n", name)
-	fmt.Printf("product link: %s%s\n", baseUrl, link)
-	fmt.Printf("product image: %s\n", imgLink)
-	fmt.Printf("product price: %s\n\n", price)
+func saveEntry(product *productEntry) {
+	fmt.Printf("product name: %s\n", product.name)
+	fmt.Printf("product link: %s%s\n", baseUrl, product.link)
+	fmt.Printf("product image: %s\n", product.imgLink)
+	fmt.Printf("product price: %s\n\n", product.price)
 
 	// TODO : save to DB
 }
