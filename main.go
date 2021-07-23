@@ -6,13 +6,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 )
 
 func main() {
+	start := time.Now()
 	numWorkers := flag.Int("numWorkers", 3, "Use this flag to set the number of workers (default to 3 if not specified).")
 	flag.Parse()
 	fmt.Printf("Number of workers: %d\n", *numWorkers)
@@ -29,8 +31,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to read from store url (%s): %e", storeUrl, err)
 	}
-
-	start := time.Now()
 
 	finished := make(chan bool)
 	wg := &sync.WaitGroup{}
