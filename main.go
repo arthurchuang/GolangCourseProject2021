@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"time"
 	"sync"
+	"GoCrawl/db_sql"
+	"database/sql"
+	_ "github.com/lib/pq"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -14,6 +17,12 @@ import (
 const (
 	storeUrl = "https://online.carrefour.com.tw/tw/"
 	baseUrl  = "https://online.carrefour.com.tw"
+	USER = "user"
+	PASSWORD= "123456"
+	DATABASE = "postgres"
+	HOST = "localhost"
+	port = 5432
+	DB_NAME="carrefour"
 )
 
 func timeTrack(start time.Time, name string){
@@ -21,8 +30,26 @@ func timeTrack(start time.Time, name string){
 	log.Printf("%s took %s",name,elapsed)
 }
 
+type Database struct{
+	DB *sql.DB
+}
 func main() {
 	defer timeTrack(time.Now(),"Total Time")
+	db, err := sql.Open(
+		"postgres",fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",HOST, USER,PASSWORD,DATABASE))
+	if err = db.Ping(); err!=nil{
+		log.Println("Fail to connect to db")
+		panic(err)
+	}
+	fmt.Println("Successfully created connection to database")
+	
+	env := &Database{DB:db}
+	db_sql.QueryDB(env.DB,`SELECT * FROM `+DB_NAME)
+	db_sql.CreateTable(env.DB,DB_NAME)
+	defer db_sql.QueryDB(env.DB,`SELECT * FROM `+DB_NAME)
+	defer db_sql.DeleteAllData(env.DB,DB_NAME)
+	//db_sql.InsertData(env.DB, DB_NAME,"harry","link","imgLink","1500")
+
 	res, err := http.Get(storeUrl)
 	if err != nil {
 		log.Fatalf("Error getting store website: %e", err)
@@ -52,21 +79,21 @@ func main() {
 	defer wg.Wait()
 	wg.Add(1)
 	for w:=1; w<=worker_number;w++{
-		go Worker(w,job_list,&wg)
+		go Worker(w,job_list,&wg,env.DB)
 	}
 }
 
-func Worker(id int,jobs <-chan string, wg *sync.WaitGroup){
+func Worker(id int,jobs <-chan string, wg *sync.WaitGroup, db *sql.DB){
 	defer wg.Done()
 	for job:= range jobs{
 		fmt.Println("worker number:",id)
-		if err := processPage(job); err != nil {
+		if err := processPage(job,db); err != nil {
 		fmt.Printf("Error while processing page (%s) : %e", job, err)
 			}
 	}
 }
 
-func processPage(url string) error {
+func processPage(url string,db *sql.DB) error {
 	fmt.Printf("page url: %s\n", url)
 	res, err := http.Get(url)
 	if err != nil {
@@ -101,18 +128,19 @@ func processPage(url string) error {
 		}
 
 		price := selection.Find(".current-price").Find("em").Text()
-
-		saveEntry(name, link, imgLink, price)
+		//db_sql.InsertData(env.db, DB_NAME, name, link, imgLink, price)
+		saveEntry(db,name, link, imgLink, price)
 	})
 	return nil
 }
 
-func saveEntry(name string, link string, imgLink string, price string) {
-	fmt.Printf("product name: %s\n", name)
-	fmt.Printf("product link: %s%s\n", baseUrl, link)
-	fmt.Printf("product image: %s\n", imgLink)
-	fmt.Printf("product price: %s", price)
-	fmt.Printf("\n\n")
+func saveEntry(db *sql.DB,name string, link string, imgLink string, price string) {
+	// fmt.Printf("product name: %s\n", name)
+	// fmt.Printf("product link: %s%s\n", baseUrl, link)
+	// fmt.Printf("product image: %s\n", imgLink)
+	// fmt.Printf("product price: %s", price)
+	// fmt.Printf("\n\n")
+	db_sql.InsertData(db,DB_NAME,name,link,imgLink,price)
 
 	// TODO : save to DB
 }
