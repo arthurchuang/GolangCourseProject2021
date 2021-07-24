@@ -3,6 +3,7 @@ package main
 import (
 	"GoCrawl/concurrent"
 	"GoCrawl/crawl"
+	"GoCrawl/model"
 	"context"
 	"flag"
 	"fmt"
@@ -21,10 +22,6 @@ const (
 	baseUrl               = "https://online.carrefour.com.tw"
 	defaultNumberOfWorker = 6
 )
-
-type productEntry struct {
-	name, link, imgLink, price string
-}
 
 func main() {
 	start := time.Now()
@@ -126,22 +123,9 @@ func processPage(url string) error {
 
 		price := selection.Find(".current-price").Find("em").Text()
 
-		product := &productEntry{
-			name:    name,
-			link:    link,
-			imgLink: imgLink,
-			price:   price,
-		}
-		saveEntry(product)
+		productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
+		productEntry.PrintProductDetails()
+		productEntry.SaveToDB()
 	})
 	return nil
-}
-
-func saveEntry(product *productEntry) {
-	fmt.Printf("product name: %s\n", product.name)
-	fmt.Printf("product link: %s%s\n", baseUrl, product.link)
-	fmt.Printf("product image: %s\n", product.imgLink)
-	fmt.Printf("product price: %s\n\n", product.price)
-
-	// TODO : save to DB
 }
