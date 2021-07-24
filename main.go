@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	storeUrl = "https://online.carrefour.com.tw/tw/"
-	baseUrl  = "https://online.carrefour.com.tw"
+	storeUrl              = "https://online.carrefour.com.tw/tw/"
+	baseUrl               = "https://online.carrefour.com.tw"
+	defaultNumberOfWorker = 6
 )
 
 type productEntry struct {
@@ -27,9 +28,8 @@ type productEntry struct {
 
 func main() {
 	start := time.Now()
-	numWorkers := flag.Int("numWorkers", 3, "Use this flag to set the number of workers (default to 3 if not specified).")
-	flag.Parse()
-	fmt.Printf("Number of workers: %d\n", *numWorkers)
+	numWorkers := getNumberOfWorkers()
+	fmt.Printf("Number of workers: %d\n", numWorkers)
 
 	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
@@ -38,9 +38,9 @@ func main() {
 
 	finished := make(chan bool)
 	wg := &sync.WaitGroup{}
-	wg.Add(*numWorkers)
+	wg.Add(numWorkers)
 
-	jobPool := concurrent.NewJobPool(*numWorkers)
+	jobPool := concurrent.NewJobPool(numWorkers)
 
 	ctx := gracefulShutdown(context.Background(), func() {
 		fmt.Printf("Shutting down gracefully\n")
@@ -48,7 +48,7 @@ func main() {
 		close(finished)
 	})
 
-	for i := 0; i < *numWorkers; i++ {
+	for i := 0; i < numWorkers; i++ {
 		jobPool.AddWorker(ctx, wg, processPage)
 	}
 
@@ -68,7 +68,17 @@ func main() {
 
 	<-finished
 	elapsed := time.Since(start)
-	fmt.Printf("\n\nTook %s to process all categories with %d workers.", elapsed, *numWorkers)
+	fmt.Printf("\n\nTook %s to process all categories with %d workers.", elapsed, numWorkers)
+}
+
+func getNumberOfWorkers() int {
+	numWorkers := flag.Int("numWorkers", defaultNumberOfWorker, fmt.Sprintf("Set the number of workers (default to %d if not specified).", defaultNumberOfWorker))
+	flag.Parse()
+	if *numWorkers < 1 {
+		fmt.Printf("Number of workers has to be at least one. Using default number (%d) instead.\n", defaultNumberOfWorker)
+		return defaultNumberOfWorker
+	}
+	return *numWorkers
 }
 
 func gracefulShutdown(c context.Context, f func()) context.Context {
