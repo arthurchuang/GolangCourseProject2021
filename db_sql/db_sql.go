@@ -6,8 +6,8 @@ import (
 	_ "github.com/lib/pq"
 )
 const (
-	USER = "user"
-	PASSWORD= "123456"
+	USER = "postgres"
+	PASSWORD= "postgres"
 	DATABASE ="postgres"
 	HOST ="localhost"
 	port = 5432
@@ -18,6 +18,15 @@ type Database struct{
 	DB *sql.DB
 }
 //function using example
+func InitDB() *sql.DB{
+	db, err := sql.Open(
+		"postgres",fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",HOST, USER,PASSWORD,DATABASE))
+	checkErr(err)
+	if err = db.Ping(); err!=nil{
+		panic(err)
+	}
+	return db
+}
 func function_format(){
 	db, err := sql.Open(
 		"postgres",fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable",HOST, USER,PASSWORD,DATABASE))
