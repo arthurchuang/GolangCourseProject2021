@@ -1,6 +1,10 @@
 package model
 
-import "fmt"
+import (
+	"GoCrawl/db_sql"
+	"database/sql"
+	"log"
+)
 
 type productEntry struct {
 	name, link, imgLink, price string
@@ -18,13 +22,15 @@ func NewProductEntry(name string, link string, imgLink string, price string) *pr
 
 // PrintProductDetails prints out the details of the productEntry.
 func (pe *productEntry) PrintProductDetails() {
-	fmt.Printf("product name: %s\n", pe.name)
-	fmt.Printf("product link: %s\n", pe.link)
-	fmt.Printf("product image: %s\n", pe.imgLink)
-	fmt.Printf("product price: %s\n\n", pe.price)
+	log.Printf("product name: %s\n", pe.name)
+	log.Printf("product link: %s\n", pe.link)
+	log.Printf("product image: %s\n", pe.imgLink)
+	log.Printf("product price: %s\n\n", pe.price)
 }
 
 // SaveToDB saves the productEntry to the database.
-func (pe *productEntry) SaveToDB() {
-	// TODO
+func (pe *productEntry) SaveToDB(db *sql.DB, table string) {
+	if err := db_sql.InsertData(db, table, pe.name, pe.link, pe.imgLink, pe.price); err != nil {
+		log.Fatal(err)
+	}
 }

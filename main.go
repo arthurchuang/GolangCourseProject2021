@@ -1,12 +1,12 @@
 package main
 
 import (
-	"database/sql"
 	"GoCrawl/concurrent"
 	"GoCrawl/crawl"
-	//"GoCrawl/model"
 	"GoCrawl/db_sql"
+	"GoCrawl/model"
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -23,28 +23,31 @@ const (
 	storeUrl              = "https://online.carrefour.com.tw/tw/"
 	baseUrl               = "https://online.carrefour.com.tw"
 	defaultNumberOfWorker = 6
-	DB_Table	      = "carrefour"
+	DB_Table              = "carrefour"
 )
 
-type Database struct{
+type Database struct {
 	DB *sql.DB
 }
 
-func timeTrack(start time.Time, name string,numworkers int){
-	elapsed := time.Since(start)
-	log.Printf("%s took %s with %d worker",name,elapsed,numworkers)
-}
-
 func main() {
-	numWorkers := getNumberOfWorkers()
-	fmt.Printf("Number of workers: %d\n", numWorkers)
-	defer timeTrack(time.Now(),"Total Time", numWorkers)
+	// Record timestamp before start of web crawling
+	start := time.Now()
 
-	db:= db_sql.InitDB()
-	db_sql.CreateTable(db,DB_Table)
-	DD := &Database{DB:db}
-	defer db_sql.DeleteAllData(db,DB_Table)
-	defer db_sql.QueryDB(db,`SELECT * FROM `+DB_Table)
+	numWorkers := getNumberOfWorkers()
+	log.Printf("Number of workers: %d\n", numWorkers)
+
+	log.Printf("Initiate connection to PostgreSQL")
+	db, err := db_sql.InitDB()
+	if err != nil {
+		log.Fatal("Error while initiating connection to database: ", err)
+	}
+
+	if err = db_sql.CreateTable(db, DB_Table); err != nil {
+		log.Fatal("Error while creating table: ", err)
+	}
+
+	DD := &Database{DB: db}
 
 	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
@@ -82,6 +85,8 @@ func main() {
 	}()
 
 	<-finished
+	elapsed := time.Since(start)
+	fmt.Printf("\n\nTook %s to process all categories with %d workers.", elapsed, numWorkers)
 }
 
 func getNumberOfWorkers() int {
@@ -139,10 +144,9 @@ func (DD *Database) processPage(url string) error {
 
 		price := selection.Find(".current-price").Find("em").Text()
 
-		// productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
-		// productEntry.PrintProductDetails()
-		// productEntry.SaveToDB()
-		db_sql.InsertData(DD.DB,DB_Table,name,link,imgLink,price)
+		productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
+		productEntry.PrintProductDetails()
+		productEntry.SaveToDB(DD.DB, DB_Table)
 	})
 	return nil
 }
