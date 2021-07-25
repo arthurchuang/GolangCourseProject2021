@@ -1,9 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"GoCrawl/concurrent"
 	"GoCrawl/crawl"
-	"GoCrawl/model"
+	//"GoCrawl/model"
+	"GoCrawl/db_sql"
 	"context"
 	"flag"
 	"fmt"
@@ -21,12 +23,28 @@ const (
 	storeUrl              = "https://online.carrefour.com.tw/tw/"
 	baseUrl               = "https://online.carrefour.com.tw"
 	defaultNumberOfWorker = 6
+	DB_Table	      = "carrefour"
 )
 
+type Database struct{
+	DB *sql.DB
+}
+
+func timeTrack(start time.Time, name string,numworkers int){
+	elapsed := time.Since(start)
+	log.Printf("%s took %s with %d worker",name,elapsed,numworkers)
+}
+
 func main() {
-	start := time.Now()
 	numWorkers := getNumberOfWorkers()
 	fmt.Printf("Number of workers: %d\n", numWorkers)
+	defer timeTrack(time.Now(),"Total Time", numWorkers)
+
+	db:= db_sql.InitDB()
+	db_sql.CreateTable(db,DB_Table)
+	DD := &Database{DB:db}
+	defer db_sql.DeleteAllData(db,DB_Table)
+	defer db_sql.QueryDB(db,`SELECT * FROM `+DB_Table)
 
 	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
@@ -46,7 +64,7 @@ func main() {
 	})
 
 	for i := 0; i < numWorkers; i++ {
-		jobPool.AddWorker(ctx, wg, processPage)
+		jobPool.AddWorker(ctx, wg, DD.processPage)
 	}
 
 	jobPool.Start(ctx)
@@ -64,8 +82,6 @@ func main() {
 	}()
 
 	<-finished
-	elapsed := time.Since(start)
-	fmt.Printf("\n\nTook %s to process all categories with %d workers.", elapsed, numWorkers)
 }
 
 func getNumberOfWorkers() int {
@@ -96,7 +112,7 @@ func gracefulShutdown(c context.Context, f func()) context.Context {
 	return ctx
 }
 
-func processPage(url string) error {
+func (DD *Database) processPage(url string) error {
 	fmt.Printf("page url: %s\n", url)
 	doc, err := crawl.GetUrlDocument(url)
 	if err != nil {
@@ -123,9 +139,10 @@ func processPage(url string) error {
 
 		price := selection.Find(".current-price").Find("em").Text()
 
-		productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
-		productEntry.PrintProductDetails()
-		productEntry.SaveToDB()
+		// productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
+		// productEntry.PrintProductDetails()
+		// productEntry.SaveToDB()
+		db_sql.InsertData(DD.DB,DB_Table,name,link,imgLink,price)
 	})
 	return nil
 }
