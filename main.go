@@ -70,8 +70,6 @@ func main() {
 		jobPool.AddWorker(ctx, wg, DD.processPage)
 	}
 
-	jobPool.Start(ctx)
-
 	go func() {
 		doc.Find(".top1.left-item").Each(func(i int, selection *goquery.Selection) {
 			anchor := selection.Find("a")
@@ -83,6 +81,8 @@ func main() {
 		})
 		close(finished)
 	}()
+
+	jobPool.Start(ctx)
 
 	<-finished
 	elapsed := time.Since(start)
