@@ -2,6 +2,7 @@ package concurrent
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sync"
 )
@@ -9,7 +10,7 @@ import (
 // JobPool defines the operations to interact with a job pool containing multiple workers working together concurrently.
 type JobPool interface {
 	// AddWorker adds a worker to process the items in the job pool using f.
-	AddWorker(ctx context.Context, wg *sync.WaitGroup, f func(string) error)
+	AddWorker(ctx context.Context, wg *sync.WaitGroup, db *sql.DB, f func(string, *sql.DB) error)
 	// Start starts the workers in the job pool.
 	Start(ctx context.Context)
 	// Enqueue adds the given input to the job pool to be processed by its workers.
@@ -22,13 +23,13 @@ type jobPool struct {
 }
 
 // AddWorker adds a worker to process the items in job pool using f.
-func (jp jobPool) AddWorker(ctx context.Context, wg *sync.WaitGroup, f func(string) error) {
+func (jp jobPool) AddWorker(ctx context.Context, wg *sync.WaitGroup, db *sql.DB, f func(string, *sql.DB) error) {
 	go func() {
 		defer wg.Done()
 		for {
 			select {
 			case url := <-jp.workerChan:
-				if err := f(url); err != nil {
+				if err := f(url, db); err != nil {
 					fmt.Printf("Error while processing input %s : %e", url, err)
 				}
 			case <-ctx.Done():

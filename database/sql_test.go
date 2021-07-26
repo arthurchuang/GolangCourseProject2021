@@ -1,7 +1,7 @@
-package db_sql_test
+package database_test
 
 import (
-	"GoCrawl/db_sql"
+	"GoCrawl/database"
 	"database/sql"
 	"os"
 	"testing"
@@ -10,7 +10,7 @@ import (
 var DB *sql.DB
 
 func TestInitDB(t *testing.T) {
-	db, err := db_sql.InitDB()
+	db, err := database.InitDB()
 	DB = db
 	if err != nil {
 		t.Error("Error while initiating connection to database: ", err)
@@ -20,13 +20,13 @@ func TestInitDB(t *testing.T) {
 }
 
 func TestCreateTable(t *testing.T) {
-	if err := db_sql.CreateTable(DB, "test_table"); err != nil {
+	if err := database.CreateTable(DB, "test_table"); err != nil {
 		t.Error("Error while creating test_table: ", err)
 	}
 }
 
 func TestInsertData(t *testing.T) {
-	if err := db_sql.InsertData(DB, "test_table", "test_name", "test_link", "test_imgLink", "test_price"); err != nil {
+	if err := database.InsertData(DB, "test_table", "test_name", "test_link", "test_imgLink", "test_price"); err != nil {
 		t.Error("Error while inserting test data entry into table: ", err)
 	}
 }

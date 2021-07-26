@@ -1,4 +1,4 @@
-package db_sql
+package database
 
 import (
 	"database/sql"
@@ -16,10 +16,6 @@ const (
 	port     = 5432
 	DB_NAME  = "carrefour"
 )
-
-type Database struct {
-	DB *sql.DB
-}
 
 // Establish connection to PostgreSQL. It is required that the docker-compose image be brought up prior to the connection.
 func InitDB() (*sql.DB, error) {

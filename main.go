@@ -3,7 +3,7 @@ package main
 import (
 	"GoCrawl/concurrent"
 	"GoCrawl/crawl"
-	"GoCrawl/db_sql"
+	"GoCrawl/database"
 	"GoCrawl/model"
 	"context"
 	"database/sql"
@@ -26,28 +26,21 @@ const (
 	DB_Table              = "carrefour"
 )
 
-type Database struct {
-	DB *sql.DB
-}
-
 func main() {
-	// Record timestamp before start of web crawling
 	start := time.Now()
 
 	numWorkers := getNumberOfWorkers()
 	log.Printf("Number of workers: %d\n", numWorkers)
 
 	log.Printf("Initiate connection to PostgreSQL")
-	db, err := db_sql.InitDB()
+	db, err := database.InitDB()
 	if err != nil {
 		log.Fatal("Error while initiating connection to database: ", err)
 	}
 
-	if err = db_sql.CreateTable(db, DB_Table); err != nil {
+	if err = database.CreateTable(db, DB_Table); err != nil {
 		log.Fatal("Error while creating table: ", err)
 	}
-
-	DD := &Database{DB: db}
 
 	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
@@ -67,7 +60,7 @@ func main() {
 	})
 
 	for i := 0; i < numWorkers; i++ {
-		jobPool.AddWorker(ctx, wg, DD.processPage)
+		jobPool.AddWorker(ctx, wg, db, processPage)
 	}
 
 	go func() {
@@ -117,7 +110,7 @@ func gracefulShutdown(c context.Context, f func()) context.Context {
 	return ctx
 }
 
-func (DD *Database) processPage(url string) error {
+func processPage(url string, db *sql.DB) error {
 	fmt.Printf("page url: %s\n", url)
 	doc, err := crawl.GetUrlDocument(url)
 	if err != nil {
@@ -146,7 +139,7 @@ func (DD *Database) processPage(url string) error {
 
 		productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
 		productEntry.PrintProductDetails()
-		productEntry.SaveToDB(DD.DB, DB_Table)
+		productEntry.SaveToDB(db, DB_Table)
 	})
 	return nil
 }
