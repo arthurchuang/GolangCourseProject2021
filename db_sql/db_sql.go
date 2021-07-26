@@ -37,7 +37,7 @@ func CreatDatabase(db *sql.DB, database string) error {
 }
 
 func CreateTable(db *sql.DB, table string) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS " + table + " (name VARCHAR(256), link VARCHAR(256), imgLink VARCHAR(256), price VARCHAR(256))")
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS " + table + " (id serial not null primary key, name VARCHAR(256), link VARCHAR(256), imgLink VARCHAR(256), price VARCHAR(256))")
 	return err
 }
 
