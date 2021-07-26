@@ -31,6 +31,6 @@ func (pe *productEntry) PrintProductDetails() {
 // SaveToDB saves the productEntry to the database.
 func (pe *productEntry) SaveToDB(db *sql.DB, table string) {
 	if err := db_sql.InsertData(db, table, pe.name, pe.link, pe.imgLink, pe.price); err != nil {
-		log.Fatal(err)
+		log.Fatal("Error while inserting data entry into table: ", err)
 	}
 }
