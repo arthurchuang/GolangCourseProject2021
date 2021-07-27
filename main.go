@@ -23,7 +23,7 @@ const (
 	storeUrl              = "https://online.carrefour.com.tw/tw/"
 	baseUrl               = "https://online.carrefour.com.tw"
 	defaultNumberOfWorker = 6
-	DB_Table              = "carrefour"
+	dbTable               = "carrefour"
 )
 
 func main() {
@@ -38,13 +38,13 @@ func main() {
 		log.Fatal("Error while initiating connection to database: ", err)
 	}
 
-	if err = database.CreateTable(db, DB_Table); err != nil {
+	if err = database.CreateTable(db, dbTable); err != nil {
 		log.Fatal("Error while creating table: ", err)
 	}
 
-	log.Printf("Delect old content that's already in %s", DB_Table)
-	if err = database.DeleteOldData(db, DB_Table); err != nil {
-		log.Fatalf("Error while deleting old content in table: %s", DB_Table)
+	log.Printf("Delect old content that's already in %s", dbTable)
+	if err = database.DeleteOldData(db, dbTable); err != nil {
+		log.Fatalf("Error while deleting old content in table: %s", dbTable)
 	}
 
 	doc, err := crawl.GetUrlDocument(storeUrl)
@@ -144,7 +144,7 @@ func processPage(url string, db *sql.DB) error {
 
 		productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
 		productEntry.PrintProductDetails()
-		if err = productEntry.SaveToDB(db, DB_Table); err != nil {
+		if err = productEntry.SaveToDB(db, dbTable); err != nil {
 			fmt.Printf("Failed to save %v to db : %s\n", productEntry, err)
 		}
 	})
