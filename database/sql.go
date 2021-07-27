@@ -47,7 +47,7 @@ func InsertData(db *sql.DB, table string, name string, link string, imgLink stri
 	// To do: overwrite old entry with newer one in mysql table
 }
 
-func DeleteAllData(db *sql.DB, table string) error {
+func DeleteOldData(db *sql.DB, table string) error {
 	_, err := db.Exec("TRUNCATE " + table)
 	return err
 }

@@ -42,6 +42,11 @@ func main() {
 		log.Fatal("Error while creating table: ", err)
 	}
 
+	log.Printf("Delect old content that's already in %s", DB_Table)
+	if err = database.DeleteOldData(db, DB_Table); err != nil {
+		log.Fatalf("Error while deleting old content in table: %s", DB_Table)
+	}
+
 	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
 		log.Fatalf("Failed to read from store url (%s): %s", storeUrl, err)
