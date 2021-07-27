@@ -88,10 +88,10 @@ func main() {
 }
 
 func getNumberOfWorkers() int {
-	numWorkers := flag.Int("numWorkers", defaultNumberOfWorker, fmt.Sprintf("Set the number of workers (default to %d if not specified).", defaultNumberOfWorker))
+	numWorkers := flag.Int("numWorkers", defaultNumberOfWorker, "The number of workers to be used for crawling.")
 	flag.Parse()
 	if *numWorkers < 1 {
-		fmt.Printf("Number of workers has to be at least one. Using default number (%d) instead.\n", defaultNumberOfWorker)
+		fmt.Printf("Number of workers has to be at least one. Using default number instead")
 		return defaultNumberOfWorker
 	}
 	return *numWorkers
