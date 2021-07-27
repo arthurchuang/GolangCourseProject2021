@@ -44,7 +44,7 @@ func main() {
 
 	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
-		log.Fatalf("Failed to read from store url (%s): %e", storeUrl, err)
+		log.Fatalf("Failed to read from store url (%s): %s", storeUrl, err)
 	}
 
 	finished := make(chan bool)
@@ -139,7 +139,9 @@ func processPage(url string, db *sql.DB) error {
 
 		productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
 		productEntry.PrintProductDetails()
-		productEntry.SaveToDB(db, DB_Table)
+		if err = productEntry.SaveToDB(db, DB_Table); err != nil {
+			fmt.Printf("Failed to save %v to db : %s\n", productEntry, err)
+		}
 	})
 	return nil
 }

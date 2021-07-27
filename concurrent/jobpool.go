@@ -30,7 +30,7 @@ func (jp jobPool) AddWorker(ctx context.Context, wg *sync.WaitGroup, db *sql.DB,
 			select {
 			case url := <-jp.workerChan:
 				if err := f(url, db); err != nil {
-					fmt.Printf("Error while processing input %s : %e", url, err)
+					fmt.Printf("Error while processing input %s : %s", url, err)
 				}
 			case <-ctx.Done():
 				return
