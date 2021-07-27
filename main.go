@@ -32,19 +32,19 @@ func main() {
 	numWorkers := getNumberOfWorkers()
 	log.Printf("Number of workers: %d\n", numWorkers)
 
-	log.Printf("Initiate connection to PostgreSQL")
+	log.Printf("Initiating connection to PostgreSQL database")
 	db, err := database.InitDB()
 	if err != nil {
-		log.Fatal("Error while initiating connection to database: ", err)
+		log.Fatalf("Error while initiating connection to database: %s", err)
 	}
 
-	if err = database.CreateTable(db, dbTable); err != nil {
-		log.Fatal("Error while creating table: ", err)
+	if err = database.CreateTableIfNotExist(db, dbTable); err != nil {
+		log.Fatalf("Error while creating table: %s", err)
 	}
 
-	log.Printf("Delect old content that's already in %s", dbTable)
+	log.Printf("Deleting previous content (if any)\n")
 	if err = database.DeleteOldData(db, dbTable); err != nil {
-		log.Fatalf("Error while deleting old content in table: %s", dbTable)
+		log.Fatalf("Error while deleting previous content in %s table : %s", dbTable, err)
 	}
 
 	doc, err := crawl.GetUrlDocument(storeUrl)

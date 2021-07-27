@@ -20,7 +20,7 @@ func TestInitDB(t *testing.T) {
 }
 
 func TestCreateTable(t *testing.T) {
-	if err := database.CreateTable(DB, "test_table"); err != nil {
+	if err := database.CreateTableIfNotExist(DB, "test_table"); err != nil {
 		t.Error("Error while creating test_table: ", err)
 	}
 }
