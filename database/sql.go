@@ -33,7 +33,7 @@ func InitDB() (*sql.DB, error) {
 
 // CreateTableIfNotExist creates a table for storing product entries in the given database.
 func CreateTableIfNotExist(db *sql.DB, table string) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS " + table + " (id serial not null primary key, name VARCHAR(256), link VARCHAR(256), imgLink VARCHAR(256), price VARCHAR(256))")
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS " + table + " (id serial primary key, name VARCHAR(256), link VARCHAR(256), imgLink VARCHAR(256), price VARCHAR(256))")
 	return err
 }
 
