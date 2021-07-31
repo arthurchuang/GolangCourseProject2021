@@ -143,8 +143,8 @@ func processPage(url string, db *sql.DB) error {
 		price := selection.Find(".current-price").Find("em").Text()
 
 		productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
-		productEntry.PrintProductDetails()
-		if err = productEntry.SaveToDB(db, dbTable); err != nil {
+		fmt.Print(productEntry)
+		if err = database.SaveProductEntry(db, dbTable, productEntry); err != nil {
 			fmt.Printf("Failed to save %v to db : %s\n", productEntry, err)
 		}
 	})

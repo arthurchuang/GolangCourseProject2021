@@ -2,6 +2,7 @@ package database_test
 
 import (
 	"GoCrawl/database"
+	"GoCrawl/model"
 	"database/sql"
 	"os"
 	"testing"
@@ -25,8 +26,15 @@ func TestCreateTable(t *testing.T) {
 	}
 }
 
-func TestInsertData(t *testing.T) {
-	if err := database.InsertData(DB, "test_table", "test_name", "test_link", "test_imgLink", "test_price"); err != nil {
-		t.Error("Error while inserting test data entry into table: ", err)
+func TestSaveProductEntry(t *testing.T) {
+	pe := &model.ProductEntry{
+		Name:    "any product name will do",
+		Link:    "any product link will do",
+		ImgLink: "any image link will do",
+		Price:   "any price will do",
+	}
+
+	if err := database.SaveProductEntry(DB, "test_table", pe); err != nil {
+		t.Errorf("Failed to save product entry to database: %s", err)
 	}
 }

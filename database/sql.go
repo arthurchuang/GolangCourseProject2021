@@ -1,6 +1,7 @@
 package database
 
 import (
+	"GoCrawl/model"
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
@@ -36,12 +37,12 @@ func CreateTableIfNotExist(db *sql.DB, table string) error {
 	return err
 }
 
-// InsertData inserts the given data to the given table in the specified database.
-func InsertData(db *sql.DB, table string, name string, link string, imgLink string, price string) error {
+// SaveProductEntry inserts the given ProductEntry to the given table in the specified database.
+func SaveProductEntry(db *sql.DB, table string, pe *model.ProductEntry) error {
 	sql := `
 	INSERT INTO ` + table + ` (name, link, imgLink, price)
 	VALUES ($1, $2, $3, $4)`
-	_, err := db.Exec(sql, name, link, imgLink, price)
+	_, err := db.Exec(sql, pe.Name, pe.Link, pe.ImgLink, pe.Price)
 	return err
 }
 
