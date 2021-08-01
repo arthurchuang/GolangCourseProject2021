@@ -24,9 +24,9 @@ const (
 	dbName     = "postgres"
 	dbHost     = "localhost"
 
-	storeUrl              = "https://online.carrefour.com.tw/tw/"
-	baseUrl               = "https://online.carrefour.com.tw"
-	dbTableName           = "carrefour"
+	storeUrl    = "https://online.carrefour.com.tw/tw/"
+	baseUrl     = "https://online.carrefour.com.tw"
+	dbTableName = "carrefour"
 )
 
 func main() {
@@ -56,7 +56,6 @@ func main() {
 		log.Fatalf("Failed to read from store url (%s): %s", storeUrl, err)
 	}
 
-	finished := make(chan bool)
 	wg := &sync.WaitGroup{}
 	wg.Add(numWorkers)
 
@@ -64,8 +63,6 @@ func main() {
 
 	ctx := gracefulShutdown(context.Background(), func() {
 		fmt.Printf("Shutting down gracefully\n")
-		wg.Wait()
-		close(finished)
 	})
 
 	for i := 0; i < numWorkers; i++ {
@@ -81,19 +78,19 @@ func main() {
 				jobPool.Enqueue(pageUrl)
 			}
 		})
-		close(finished)
+		jobPool.NoMoreInput()
 	}()
 
 	jobPool.Start(ctx)
 
-	<-finished
+	wg.Wait()
 	elapsed := time.Since(start)
-	fmt.Printf("\n\nTook %s to process all categories with %d workers.\n", elapsed, numWorkers)
+
 	numSaved, err := database.GetElementCounts(db, dbTableName)
 	if err != nil {
 		log.Fatalf("Failed to get number of product entries saved: %s", err)
 	}
-	fmt.Printf("Saved %d product entries\n", numSaved)
+	fmt.Printf("Saved %d product entries with %d workers in %s\n", numSaved, numWorkers, elapsed)
 }
 
 func gracefulShutdown(c context.Context, f func()) context.Context {

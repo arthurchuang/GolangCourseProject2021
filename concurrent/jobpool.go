@@ -18,15 +18,18 @@ type JobPool interface {
 	Start(ctx context.Context)
 	// Enqueue adds the given input to the job pool to be processed by its workers.
 	Enqueue(input string)
+	// NoMoreInput should be called to notify the JobPool that there will be no more inputs coming to the job pool.
+	NoMoreInput()
 }
 
 type jobPool struct {
-	inputChan  chan string
-	workerChan chan string
+	inputChan   chan string
+	noMoreInput bool
+	workerChan  chan string
 }
 
 // AddWorker adds a worker to process the items in job pool using f.
-func (jp jobPool) AddWorker(ctx context.Context, wg *sync.WaitGroup, db *sql.DB, f func(string, *sql.DB) error) {
+func (jp *jobPool) AddWorker(ctx context.Context, wg *sync.WaitGroup, db *sql.DB, f func(string, *sql.DB) error) {
 	go func() {
 		defer wg.Done()
 		for {
@@ -37,13 +40,17 @@ func (jp jobPool) AddWorker(ctx context.Context, wg *sync.WaitGroup, db *sql.DB,
 				}
 			case <-ctx.Done():
 				return
+			default:
+				if jp.noMoreInput {
+					return
+				}
 			}
 		}
 	}()
 }
 
 // Start starts the workers in the job pool.
-func (jp jobPool) Start(ctx context.Context) {
+func (jp *jobPool) Start(ctx context.Context) {
 	go func() {
 		for {
 			select {
@@ -62,15 +69,21 @@ func (jp jobPool) Start(ctx context.Context) {
 }
 
 // Enqueue adds the given input to the job pool to be processed by its workers.
-func (jp jobPool) Enqueue(input string) {
+func (jp *jobPool) Enqueue(input string) {
 	jp.inputChan <- input
+}
+
+// NoMoreInput should be called to notify the JobPool that there will not be any more inputs coming to the job pool.
+func (jp *jobPool) NoMoreInput() {
+	jp.noMoreInput = true
 }
 
 // NewJobPool creates and returns a JobPool.
 func NewJobPool(numWorkers int) JobPool {
 	return &jobPool{
-		inputChan:  make(chan string),
-		workerChan: make(chan string, numWorkers),
+		inputChan:   make(chan string),
+		noMoreInput: false,
+		workerChan:  make(chan string, numWorkers),
 	}
 }
 
