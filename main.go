@@ -88,7 +88,12 @@ func main() {
 
 	<-finished
 	elapsed := time.Since(start)
-	fmt.Printf("\n\nTook %s to process all categories with %d workers.", elapsed, numWorkers)
+	fmt.Printf("\n\nTook %s to process all categories with %d workers.\n", elapsed, numWorkers)
+	numSaved, err := database.GetElementCounts(db, dbTableName)
+	if err != nil {
+		log.Fatalf("Failed to get number of product entries saved: %s", err)
+	}
+	fmt.Printf("Saved %d product entries\n", numSaved)
 }
 
 func gracefulShutdown(c context.Context, f func()) context.Context {
