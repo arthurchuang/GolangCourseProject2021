@@ -20,10 +20,15 @@ import (
 )
 
 const (
+	dbUser     = "postgres"
+	dbPassword = "postgres"
+	dbName     = "postgres"
+	dbHost     = "localhost"
+
 	storeUrl              = "https://online.carrefour.com.tw/tw/"
 	baseUrl               = "https://online.carrefour.com.tw"
 	defaultNumberOfWorker = 6
-	dbTable               = "carrefour"
+	dbTableName           = "carrefour"
 )
 
 func main() {
@@ -32,20 +37,21 @@ func main() {
 	numWorkers := getNumberOfWorkers()
 	log.Printf("Number of workers: %d\n", numWorkers)
 
-	log.Printf("Initiating connection to PostgreSQL database")
-	db, err := database.InitDB()
+	log.Println("Initiating connection to PostgreSQL database")
+	db, err := database.InitDB(dbHost, dbName, dbUser, dbPassword)
 	if err != nil {
 		log.Fatalf("Error while initiating connection to database: %s", err)
 	}
 
-	if err = database.CreateTableIfNotExist(db, dbTable); err != nil {
+	log.Println("Preparing table for recording product entries")
+	if err = database.CreateTableIfNotExist(db, dbTableName); err != nil {
 		log.Fatalf("Error while creating table: %s", err)
 	}
 
-	log.Printf("Deleting previous content (if any)\n")
-	if err = database.DeleteOldData(db, dbTable); err != nil {
-		log.Fatalf("Error while deleting previous content in %s table : %s", dbTable, err)
+	if err = database.TruncateTable(db, dbTableName); err != nil {
+		log.Fatalf("Error while deleting previous content in %s table : %s", dbTableName, err)
 	}
+	log.Println("Database setup completed")
 
 	doc, err := crawl.GetUrlDocument(storeUrl)
 	if err != nil {
@@ -144,7 +150,7 @@ func processPage(url string, db *sql.DB) error {
 
 		productEntry := model.NewProductEntry(name, fmt.Sprintf("%s%s", baseUrl, link), imgLink, price)
 		fmt.Print(productEntry)
-		if err = database.SaveProductEntry(db, dbTable, productEntry); err != nil {
+		if err = database.SaveProductEntry(db, dbTableName, productEntry); err != nil {
 			fmt.Printf("Failed to save %v to db : %s\n", productEntry, err)
 		}
 	})
