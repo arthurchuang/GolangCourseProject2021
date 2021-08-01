@@ -3,9 +3,12 @@ package concurrent
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"sync"
 )
+
+const defaultNumberOfWorker = 6
 
 // JobPool defines the operations to interact with a job pool containing multiple workers working together concurrently.
 type JobPool interface {
@@ -69,4 +72,14 @@ func NewJobPool(numWorkers int) JobPool {
 		inputChan:  make(chan string),
 		workerChan: make(chan string, numWorkers),
 	}
+}
+
+func GetNumberOfWorkers() int {
+	numWorkers := flag.Int("numWorkers", defaultNumberOfWorker, "The number of workers to be used for crawling.")
+	flag.Parse()
+	if *numWorkers < 1 {
+		fmt.Printf("Number of workers has to be at least one. Using default number instead")
+		return defaultNumberOfWorker
+	}
+	return *numWorkers
 }

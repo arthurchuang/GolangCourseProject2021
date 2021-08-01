@@ -7,7 +7,6 @@ import (
 	"GoCrawl/model"
 	"context"
 	"database/sql"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -27,14 +26,13 @@ const (
 
 	storeUrl              = "https://online.carrefour.com.tw/tw/"
 	baseUrl               = "https://online.carrefour.com.tw"
-	defaultNumberOfWorker = 6
 	dbTableName           = "carrefour"
 )
 
 func main() {
 	start := time.Now()
 
-	numWorkers := getNumberOfWorkers()
+	numWorkers := concurrent.GetNumberOfWorkers()
 	log.Printf("Number of workers: %d\n", numWorkers)
 
 	log.Println("Initiating connection to PostgreSQL database")
@@ -91,16 +89,6 @@ func main() {
 	<-finished
 	elapsed := time.Since(start)
 	fmt.Printf("\n\nTook %s to process all categories with %d workers.", elapsed, numWorkers)
-}
-
-func getNumberOfWorkers() int {
-	numWorkers := flag.Int("numWorkers", defaultNumberOfWorker, "The number of workers to be used for crawling.")
-	flag.Parse()
-	if *numWorkers < 1 {
-		fmt.Printf("Number of workers has to be at least one. Using default number instead")
-		return defaultNumberOfWorker
-	}
-	return *numWorkers
 }
 
 func gracefulShutdown(c context.Context, f func()) context.Context {
