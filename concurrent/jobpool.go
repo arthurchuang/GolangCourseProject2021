@@ -87,6 +87,8 @@ func NewJobPool(numWorkers int) JobPool {
 	}
 }
 
+// GetNumberOfWorkers parses the flag to read the number of workers specified by the user.
+// If the user specified a non-positive number, the defaultNumberOfWorker will be returned.
 func GetNumberOfWorkers() int {
 	numWorkers := flag.Int("numWorkers", defaultNumberOfWorker, "The number of workers to be used for crawling.")
 	flag.Parse()
